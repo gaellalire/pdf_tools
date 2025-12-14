@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <charset>${console.encoding:-${file.encoding}}</charset>
+      <pattern>%d{HH:mm:ss.SSS} %level -> %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="fr.gaellalire.action.impl" level="TRACE" />
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

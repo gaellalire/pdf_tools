@@ -1,0 +1,37 @@
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 
+  http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+	<id>unix</id>
+	<formats>
+		<format>tar.gz</format>
+	</formats>
+	<includeBaseDirectory>false</includeBaseDirectory>
+	<fileSets>
+		<fileSet>
+			<directory>${basedir}/src/main/assembly/unix</directory>
+			<fileMode>0755</fileMode>
+			<filtered>true</filtered>
+			<outputDirectory>/</outputDirectory>
+			<includes>
+				<include>pdftools</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${basedir}/src/main/assembly/unix</directory>
+			<fileMode>0644</fileMode>
+			<directoryMode>0755</directoryMode>
+			<outputDirectory>/</outputDirectory>
+			<excludes>
+				<exclude>pdftools</exclude>
+				<exclude>.gitattributes</exclude>
+			</excludes>
+		</fileSet>
+	</fileSets>
+	<dependencySets>
+		<dependencySet>
+			<outputDirectory>lib</outputDirectory>
+			<useProjectArtifact>true</useProjectArtifact>
+			<fileMode>0644</fileMode>
+		</dependencySet>
+	</dependencySets>
+</assembly>
