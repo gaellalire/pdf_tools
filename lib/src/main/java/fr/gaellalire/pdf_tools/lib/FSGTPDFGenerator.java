@@ -35,13 +35,20 @@ import fr.gaellalire.pdf_tools.lib.match.LicenceInformationProvider;
 
 public class FSGTPDFGenerator {
 
-    private LicenceInformationProvider licenceInformationProvider;
+    private LicenceInformationProvider homeLicenceInformationProvider;
 
-    public void setLicenceInformationProvider(LicenceInformationProvider licenceInformationProvider) {
-        this.licenceInformationProvider = licenceInformationProvider;
+    private LicenceInformationProvider guestLicenceInformationProvider;
+
+    public void setHomeLicenceInformationProvider(LicenceInformationProvider homeLicenceInformationProvider) {
+        this.homeLicenceInformationProvider = homeLicenceInformationProvider;
+    }
+    
+    public void setGuestLicenceInformationProvider(LicenceInformationProvider guestLicenceInformationProvider) {
+        this.guestLicenceInformationProvider = guestLicenceInformationProvider;
     }
 
-    public Table licencesTable(TeamState homeTeamState) throws Exception {
+
+    public Table licencesTable(LicenceInformationProvider licenceInformationProvider, TeamState teamState) throws Exception {
         Table table = new Table(UnitValue.createPercentArray(new float[] {1, 8, 4})).useAllAvailableWidth();
         table.setMargin(0);
         table.setBorder(Border.NO_BORDER);
@@ -51,8 +58,8 @@ public class FSGTPDFGenerator {
         table.addHeaderCell(new Cell().setBorderTop(Border.NO_BORDER).add(new Paragraph("NOM Prénom").setTextAlignment(TextAlignment.CENTER)));
         table.addHeaderCell(new Cell().setBorderRight(Border.NO_BORDER).setBorderTop(Border.NO_BORDER).add(new Paragraph("N° Licence").setTextAlignment(TextAlignment.CENTER)));
 
-        if (homeTeamState != null && homeTeamState.getPlayerIdentifiers() != null) {
-            for (String playerIdentifier : homeTeamState.getPlayerIdentifiers()) {
+        if (teamState != null && teamState.getPlayerIdentifiers() != null) {
+            for (String playerIdentifier : teamState.getPlayerIdentifiers()) {
                 LicenceInformation licence = licenceInformationProvider.getLicenceInformation(playerIdentifier);
                 table.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
                         .add(new Paragraph(licence.getUniformNumber()).setTextAlignment(TextAlignment.CENTER)));
@@ -148,9 +155,9 @@ public class FSGTPDFGenerator {
         table.addCell(guestCell(new Paragraph("Présentation des licences OUI - ").add(new Text("NON").setLineThrough())));
 
         TeamState homeTeamState = matchState.getHomeTeamState();
-        table.addCell(new Cell().setBackgroundColor(homeColor).setPadding(0).add(licencesTable(homeTeamState)));
+        table.addCell(new Cell().setBackgroundColor(homeColor).setPadding(0).add(licencesTable(homeLicenceInformationProvider, homeTeamState)));
         TeamState guestTeamState = matchState.getGuestTeamState();
-        table.addCell(new Cell().setBackgroundColor(guestColor).setPadding(0).add(licencesTable(guestTeamState)));
+        table.addCell(new Cell().setBackgroundColor(guestColor).setPadding(0).add(licencesTable(guestLicenceInformationProvider, guestTeamState)));
 
         String homeCaptainIdentifier = null;
         if (homeTeamState != null) {
@@ -170,9 +177,9 @@ public class FSGTPDFGenerator {
         Paragraph capitaine = new Paragraph("CAPITAINE").setTextAlignment(TextAlignment.CENTER);
         table.addCell(homeCell(capitaine));
         table.addCell(guestCell(capitaine));
-        LicenceInformation homeCaptainLicenceInformation = licenceInformationProvider.getLicenceInformation(homeCaptainIdentifier);
+        LicenceInformation homeCaptainLicenceInformation = homeLicenceInformationProvider.getLicenceInformation(homeCaptainIdentifier);
         table.addCell(homeCell(new Paragraph("NOM Prénom : " + homeCaptainLicenceInformation.getName()).setTextAlignment(TextAlignment.LEFT)));
-        LicenceInformation guestCaptainLicenceInformation = licenceInformationProvider.getLicenceInformation(guestCaptainIdentifier);
+        LicenceInformation guestCaptainLicenceInformation = guestLicenceInformationProvider.getLicenceInformation(guestCaptainIdentifier);
         table.addCell(guestCell(new Paragraph("NOM Prénom : " + guestCaptainLicenceInformation.getName()).setTextAlignment(TextAlignment.LEFT)));
         table.addCell(homeCell(new Paragraph("N° Licence : " + homeCaptainIdentifier).setTextAlignment(TextAlignment.LEFT)));
         table.addCell(guestCell(new Paragraph("N° Licence : " + guestCaptainIdentifier).setTextAlignment(TextAlignment.LEFT)));
@@ -213,10 +220,10 @@ public class FSGTPDFGenerator {
                 tableSets.addCell(new Cell().add(new Paragraph(String.valueOf(setText)).setTextAlignment(TextAlignment.CENTER)));
                 column++;
             }
-        }
-        while (column < 9) {
-            tableSets.addCell(emptyCell);
-            column++;
+            while (column < 9) {
+                tableSets.addCell(emptyCell);
+                column++;
+            }
         }
         if (homeSet > guestSet) {
             document.add(new Paragraph(new Text(homeTeamName).setBackgroundColor(homeColor)).add(" BAT ").add(new Text(guestTeamName).setBackgroundColor(guestColor)).add(" PAR ")
@@ -241,20 +248,20 @@ public class FSGTPDFGenerator {
                 tableFinalPoint.addCell(guestCell(new Paragraph(String.valueOf(setFinalState.getGuestState().getPoint())).setTextAlignment(TextAlignment.CENTER)));
                 column += 2;
             }
-        }
-        while (column < 14) {
-            tableFinalPoint.addCell(emptyCell);
-            column++;
+            while (column < 14) {
+                tableFinalPoint.addCell(emptyCell);
+                column++;
+            }
         }
         document.add(tableFinalPoint);
         document.add(new Paragraph());
 
         List<List<String>> pointBySet = new ArrayList<List<String>>();
-        int homePoint = 0;
-        int guestPoint = 0;
-        List<String> currentSetHome = new ArrayList<String>();
-        List<String> currentSetGuest = new ArrayList<String>();
         if (matchState.getEvents() != null) {
+            int homePoint = 0;
+            int guestPoint = 0;
+            List<String> currentSetHome = new ArrayList<String>();
+            List<String> currentSetGuest = new ArrayList<String>();
             for (MatchEvent matchEvent : matchState.getEvents()) {
                 if (matchEvent.isCancelled()) {
                     continue;
@@ -287,6 +294,10 @@ public class FSGTPDFGenerator {
                 }
 
             }
+            if (!currentSetHome.isEmpty() || !currentSetGuest.isEmpty()) {
+                pointBySet.add(currentSetHome);
+                pointBySet.add(currentSetGuest);
+            }
         }
 
         List<ListIterator<String>> list = new ArrayList<ListIterator<String>>();
@@ -297,6 +308,9 @@ public class FSGTPDFGenerator {
             }
             list.add(points.listIterator(points.size()));
             column++;
+        }
+        while (list.size() < 14) {
+            list.add(null);
         }
 
         Table tablePoint = new Table(UnitValue.createPercentArray(new float[] {1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1})).useAllAvailableWidth();

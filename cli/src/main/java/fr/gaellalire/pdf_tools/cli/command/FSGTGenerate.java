@@ -62,7 +62,8 @@ public class FSGTGenerate implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         FSGTPDFGenerator generator = new FSGTPDFGenerator();
-        generator.setLicenceInformationProvider(new NoDataLicenceInformationProvider());
+        generator.setHomeLicenceInformationProvider(new NoDataLicenceInformationProvider());
+        generator.setGuestLicenceInformationProvider(new NoDataLicenceInformationProvider());
         MatchConfiguration matchConfiguration = null;
         if (matchConfigurationFile != null) {
             matchConfiguration = JSONUtils.readPojo(new FileInputStream(matchConfigurationFile), MatchConfiguration.class);

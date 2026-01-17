@@ -8,9 +8,6 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>pdf_tools.lib</artifactId>
-	<properties>
-		<itext.version>9.4.0</itext.version>
-	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>fr.gaellalire.match_pojo</groupId>
@@ -21,16 +18,6 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>2.17.2</version>
-		</dependency>
-		<dependency>
-			<groupId>com.itextpdf</groupId>
-			<artifactId>bouncy-castle-adapter</artifactId>
-			<version>${itext.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcprov-jdk18on</artifactId>
-			<version>1.83</version>
 		</dependency>
 		<dependency>
 			<groupId>com.itextpdf</groupId>

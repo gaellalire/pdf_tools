@@ -25,15 +25,9 @@
 
 package fr.gaellalire.pdf_tools.lib.utils;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
-
-import java.io.Serializable;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.IOException;
 
 /**
  * This class represents a relative distinguished name, or RDN, which is a
