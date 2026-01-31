@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Date;
 import java.util.concurrent.Callable;
 
 import fr.gaellalire.match_pojo.MatchConfiguration;
@@ -37,6 +38,18 @@ import picocli.CommandLine.Parameters;
 
 @Command(name = "fsgt-generate", mixinStandardHelpOptions = true)
 public class FSGTGenerate implements Callable<Integer> {
+
+    @Option(names = "--initial-document-id")
+    private String initialDocumentId;
+
+    @Option(names = "--modified-document-id")
+    private String modifiedDocumentId;
+
+    @Option(names = "--creation-date")
+    private Date creationDate;
+
+    @Option(names = "--modification-date")
+    private Date modificationDate;
 
     @Option(names = "--match-configuration-file")
     private File matchConfigurationFile;
@@ -62,6 +75,10 @@ public class FSGTGenerate implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         FSGTPDFGenerator generator = new FSGTPDFGenerator();
+        generator.setCreationDate(creationDate);
+        generator.setModificationDate(modificationDate);
+        generator.setInitialDocumentId(initialDocumentId);
+        generator.setModifiedDocumentId(modifiedDocumentId);
         generator.setHomeLicenceInformationProvider(new NoDataLicenceInformationProvider());
         generator.setGuestLicenceInformationProvider(new NoDataLicenceInformationProvider());
         MatchConfiguration matchConfiguration = null;

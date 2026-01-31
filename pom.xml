@@ -19,7 +19,7 @@
 	</build>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<itext.version>9.4.0</itext.version>
+		<itext.version>9.5.0</itext.version>
 	</properties>
 	<modules>
 		<module>lib</module>

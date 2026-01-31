@@ -32,16 +32,15 @@ public class PDFVerifier {
         
         properties.setRevocationOnlineFetching(ValidatorContexts.all(), CertificateSources.all(), TimeBasedContexts.all(), OnlineFetching.ALWAYS_FETCH);
         
-        PdfDocument pdfDoc = new PdfDocument(new PdfReader(signedPdf));
-        builder.withTrustedCertificates(trustedCertificates);
-        
-        IssuingCertificateRetriever certificateRetriever = builder.getCertificateRetriever();
-        
-        SignatureValidator signatureValidator = builder
-                .withIssuingCertificateRetrieverFactory(() -> certificateRetriever)
-                .buildSignatureValidator(pdfDoc);
+        try (PdfDocument pdfDoc = new PdfDocument(new PdfReader(signedPdf))) {
+            builder.withTrustedCertificates(trustedCertificates);
 
-        return signatureValidator.validateSignatures();
+            IssuingCertificateRetriever certificateRetriever = builder.getCertificateRetriever();
+
+            SignatureValidator signatureValidator = builder.withIssuingCertificateRetrieverFactory(() -> certificateRetriever).buildSignatureValidator(pdfDoc);
+
+            return signatureValidator.validateSignatures();
+        }
     }
 
 }

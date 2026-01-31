@@ -25,6 +25,8 @@ import java.io.InputStreamReader;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.util.Base64;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.concurrent.Callable;
 
@@ -36,6 +38,7 @@ import com.itextpdf.kernel.crypto.DigestAlgorithms;
 import com.itextpdf.signatures.PrivateKeySignature;
 
 import fr.gaellalire.pdf_tools.lib.PDFSigner;
+import fr.gaellalire.pdf_tools.lib.SignatureData;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
@@ -50,6 +53,27 @@ public class Sign implements Callable<Integer> {
 
     @Option(names = "--signature-name", required = true)
     private String signatureName;
+
+    @Option(names = "--signature")
+    private String signature;
+
+    @Option(names = "--timestamp-token")
+    private String timestampToken;
+
+    @Option(names = "--intermediate-modified-document-id")
+    private String intermediateModifiedDocumentId;
+
+    @Option(names = "--modified-document-id")
+    private String modifiedDocumentId;
+
+    @Option(names = "--intermediate-modification-date")
+    private Long intermediateModificationDate;
+
+    @Option(names = "--modification-date")
+    private Long modificationDate;
+
+    @Option(names = "--claimed-sign-date")
+    private Long claimedSignDate;
 
     @Option(names = "--timestamp-service-url", required = true)
     private String timestampServiceURL;
@@ -136,14 +160,48 @@ public class Sign implements Callable<Integer> {
                 break;
             }
         }
+        
+        if (signature != null) {
+            sign.setSignature(Base64.getDecoder().decode(signature));
+        }
+        
+        if (intermediateModificationDate != null) {
+            sign.setIntermediateModificationDate(new Date(intermediateModificationDate));
+        }
+
+        if (modificationDate != null) {
+            sign.setModificationDate(new Date(modificationDate));
+        }
+        if (claimedSignDate != null) {
+            sign.setClaimedSignDate(new Date(claimedSignDate));
+        }
 
         sign.setSignatureName(signatureName);
         
         sign.setTimestampURL(timestampServiceURL);
+        
+        if (timestampToken != null) {
+            sign.setTimestampToken(Base64.getDecoder().decode(timestampToken));
+        }
+        
+        if (modifiedDocumentId != null) {
+            sign.setModifiedDocumentId(new String(Base64.getDecoder().decode(modifiedDocumentId), "UTF-8"));
+        }
+        
+        if (intermediateModifiedDocumentId != null) {
+            sign.setIntermediateModifiedDocumentId(new String(Base64.getDecoder().decode(intermediateModifiedDocumentId), "UTF-8"));
+        }
 
         try (FileInputStream fileInputStream = new FileInputStream(srcFile)) {
             try (FileOutputStream fileOutputStream = new FileOutputStream(destFile)) {
-                sign.sign(fileInputStream, fileOutputStream);
+                SignatureData signatureData = sign.sign(fileInputStream, fileOutputStream);
+                System.out.println("--signature=" + Base64.getEncoder().encodeToString(signatureData.getSignature()));
+                System.out.println("--claimed-sign-date=" + signatureData.getClaimedSignDate().getTime());
+                System.out.println("--timestamp-token=" + Base64.getEncoder().encodeToString(signatureData.getTimestampToken()));
+                System.out.println("--intermediate-modification-date=" + signatureData.getIntermediateModificationDate().getTime());
+                System.out.println("--intermediate-modified-document-id=" + Base64.getEncoder().encodeToString(signatureData.getIntermediateModifiedDocumentId().getBytes("UTF-8")));
+                System.out.println("--modification-date=" + signatureData.getModificationDate().getTime());
+                System.out.println("--modified-document-id=" + Base64.getEncoder().encodeToString(signatureData.getModifiedDocumentId().getBytes("UTF-8")));
             }
         }
         

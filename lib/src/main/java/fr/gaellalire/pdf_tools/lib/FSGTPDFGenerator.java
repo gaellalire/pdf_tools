@@ -2,6 +2,8 @@ package fr.gaellalire.pdf_tools.lib;
 
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -10,8 +12,12 @@ import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.Color;
 import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.pdf.PdfDate;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfName;
+import com.itextpdf.kernel.pdf.PdfString;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.WriterProperties;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.element.Cell;
@@ -39,14 +45,25 @@ public class FSGTPDFGenerator {
 
     private LicenceInformationProvider guestLicenceInformationProvider;
 
+    private String initialDocumentId;
+
+    private String modifiedDocumentId;
+    
+    public void setInitialDocumentId(String initialDocumentId) {
+        this.initialDocumentId = initialDocumentId;
+    }
+    
+    public void setModifiedDocumentId(String modifiedDocumentId) {
+        this.modifiedDocumentId = modifiedDocumentId;
+    }
+
     public void setHomeLicenceInformationProvider(LicenceInformationProvider homeLicenceInformationProvider) {
         this.homeLicenceInformationProvider = homeLicenceInformationProvider;
     }
-    
+
     public void setGuestLicenceInformationProvider(LicenceInformationProvider guestLicenceInformationProvider) {
         this.guestLicenceInformationProvider = guestLicenceInformationProvider;
     }
-
 
     public Table licencesTable(LicenceInformationProvider licenceInformationProvider, TeamState teamState) throws Exception {
         Table table = new Table(UnitValue.createPercentArray(new float[] {1, 8, 4})).useAllAvailableWidth();
@@ -78,6 +95,18 @@ public class FSGTPDFGenerator {
     private Color guestColor;
 
     private String creator;
+
+    private Date creationDate;
+
+    private Date modificationDate;
+
+    public void setCreationDate(Date creationDate) {
+        this.creationDate = creationDate;
+    }
+
+    public void setModificationDate(Date modificationDate) {
+        this.modificationDate = modificationDate;
+    }
 
     public void setCreator(String creator) {
         this.creator = creator;
@@ -112,242 +141,268 @@ public class FSGTPDFGenerator {
                 }
             }
         }
+        
 
-        PdfDocument pdf = new PdfDocument(new PdfWriter(fileOutputStream));
-
-        pdf.getDocumentInfo().setTitle(homeTeamName + " - " + guestTeamName);
-        if (creator != null) {
-            pdf.getDocumentInfo().setCreator(creator);
-        }
-
-        Document document = new Document(pdf);
-
-        Table headerTable = new Table(2).useAllAvailableWidth();
-
-        headerTable.addCell(new Cell().setBorder(Border.NO_BORDER).add(new Image(ImageDataFactory.create(FSGTPDFGenerator.class.getResource("logo.png"))).scaleToFit(75, 75)));
-
-        Color headerColor = Color.createColorWithColorSpace(new float[] {.25f, .36f, 0.55f});
-
-        headerTable.addCell(new Cell().setBorder(Border.NO_BORDER)
-                .add(new Paragraph("CHAMPIONNAT VOLLEY 2025.2026").setFontColor(headerColor).setTextAlignment(TextAlignment.CENTER)
-                        .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)).setFontSize(24))
-                .add(new Paragraph("Feuille de Match").setFont(PdfFontFactory.createFont(StandardFonts.TIMES_BOLD)).setFontColor(headerColor).setTextAlignment(TextAlignment.CENTER)
-                        .setFontSize(24)));
-
-        document.add(headerTable);
-
-        Table infoTable = new Table(3).useAllAvailableWidth();
-        Color infoColor = Color.createColorWithColorSpace(new float[] {.45f, .98f, 0.99f});
-        infoTable.setBackgroundColor(infoColor);
-        infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).add(new Paragraph("Date : ")));
-        infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Journée : ")));
-        infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Poule : ")));
-        document.add(infoTable);
-
-        Table table = new Table(UnitValue.createPercentArray(new float[] {1, 1})).useAllAvailableWidth();
-
-        // Add header cells
-        table.addHeaderCell(homeCell(new Paragraph("Equipe Recevant : " + homeTeamName)));
-        table.addHeaderCell(guestCell(new Paragraph("Equipe Visiteur : " + guestTeamName)));
-
-        // Add data cells
-        table.addCell(homeCell(new Paragraph("Présentation des licences OUI - ").add(new Text("NON").setLineThrough())));
-        table.addCell(guestCell(new Paragraph("Présentation des licences OUI - ").add(new Text("NON").setLineThrough())));
-
-        TeamState homeTeamState = matchState.getHomeTeamState();
-        table.addCell(new Cell().setBackgroundColor(homeColor).setPadding(0).add(licencesTable(homeLicenceInformationProvider, homeTeamState)));
-        TeamState guestTeamState = matchState.getGuestTeamState();
-        table.addCell(new Cell().setBackgroundColor(guestColor).setPadding(0).add(licencesTable(guestLicenceInformationProvider, guestTeamState)));
-
-        String homeCaptainIdentifier = null;
-        if (homeTeamState != null) {
-            homeCaptainIdentifier = homeTeamState.getCaptainIdentifier();
-        }
-        if (homeCaptainIdentifier == null) {
-            homeCaptainIdentifier = "";
-        }
-        String guestCaptainIdentifier = null;
-        if (guestTeamState != null) {
-            guestCaptainIdentifier = guestTeamState.getCaptainIdentifier();
-        }
-        if (guestCaptainIdentifier == null) {
-            guestCaptainIdentifier = "";
-        }
-
-        Paragraph capitaine = new Paragraph("CAPITAINE").setTextAlignment(TextAlignment.CENTER);
-        table.addCell(homeCell(capitaine));
-        table.addCell(guestCell(capitaine));
-        LicenceInformation homeCaptainLicenceInformation = homeLicenceInformationProvider.getLicenceInformation(homeCaptainIdentifier);
-        table.addCell(homeCell(new Paragraph("NOM Prénom : " + homeCaptainLicenceInformation.getName()).setTextAlignment(TextAlignment.LEFT)));
-        LicenceInformation guestCaptainLicenceInformation = guestLicenceInformationProvider.getLicenceInformation(guestCaptainIdentifier);
-        table.addCell(guestCell(new Paragraph("NOM Prénom : " + guestCaptainLicenceInformation.getName()).setTextAlignment(TextAlignment.LEFT)));
-        table.addCell(homeCell(new Paragraph("N° Licence : " + homeCaptainIdentifier).setTextAlignment(TextAlignment.LEFT)));
-        table.addCell(guestCell(new Paragraph("N° Licence : " + guestCaptainIdentifier).setTextAlignment(TextAlignment.LEFT)));
-        table.addCell(homeCell(
-                new Paragraph("Signature : ").add(new SignatureFieldAppearance("Signature Recevant").setContent("Signez ici").setHeight(50).setWidth(150).setInteractive(true))
-                        .setTextAlignment(TextAlignment.LEFT)));
-        table.addCell(guestCell(
-                new Paragraph("Signature : ").add(new SignatureFieldAppearance("Signature Visiteur").setContent("Signez ici").setHeight(50).setWidth(150).setInteractive(true))
-                        .setTextAlignment(TextAlignment.LEFT)));
-
-        document.add(table);
-        document.add(new Paragraph());
-
-        Cell emptyCell = new Cell().setBorder(Border.NO_BORDER);
-
-        int homeSet = 0;
-        int guestSet = 0;
-
-        int column = 0;
-        Table tableSets = new Table(UnitValue.createPercentArray(new float[] {2, 1.5f, 2, 1.5f, 2, 1.5f, 2, 1.5f, 2})).useAllAvailableWidth();
-        if (matchState.getSetFinalStates() != null) {
-            for (SetFinalState setFinalState : matchState.getSetFinalStates()) {
-                if (column != 0) {
-                    tableSets.addCell(emptyCell);
-                    column++;
-                }
-                if (setFinalState.getHomeState().getPoint() > setFinalState.getGuestState().getPoint()) {
-                    homeSet++;
-                } else {
-                    guestSet++;
-                }
-                String setText;
-                if (column == 0) {
-                    setText = "1er SET";
-                } else {
-                    setText = (column / 2 + 1) + "ème SET";
-                }
-                tableSets.addCell(new Cell().add(new Paragraph(String.valueOf(setText)).setTextAlignment(TextAlignment.CENTER)));
-                column++;
+        try (PdfWriter writer = new PdfWriter(fileOutputStream)) {
+            WriterProperties properties = writer.getProperties();
+            if (initialDocumentId != null) {
+                properties.setInitialDocumentId(new PdfString(initialDocumentId));
             }
-            while (column < 9) {
-                tableSets.addCell(emptyCell);
-                column++;
+            if (modifiedDocumentId != null) {
+                properties.setModifiedDocumentId(new PdfString(modifiedDocumentId));
             }
-        }
-        if (homeSet > guestSet) {
-            document.add(new Paragraph(new Text(homeTeamName).setBackgroundColor(homeColor)).add(" BAT ").add(new Text(guestTeamName).setBackgroundColor(guestColor)).add(" PAR ")
-                    .add(new Text(String.valueOf(homeSet)).setBackgroundColor(homeColor)).add(" SETS A ").add(new Text(String.valueOf(guestSet)).setBackgroundColor(guestColor)));
-        } else {
-            document.add(new Paragraph(new Text(guestTeamName).setBackgroundColor(guestColor)).add(" BAT ").add(new Text(homeTeamName).setBackgroundColor(homeColor)).add(" PAR ")
-                    .add(new Text(String.valueOf(guestSet)).setBackgroundColor(guestColor)).add(" SETS A ").add(new Text(String.valueOf(homeSet)).setBackgroundColor(homeColor)));
-        }
+            try (PdfDocument pdf = new PdfDocument(writer)) {
 
-        document.add(tableSets);
-        document.add(new Paragraph());
-
-        column = 0;
-        Table tableFinalPoint = new Table(UnitValue.createPercentArray(new float[] {1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1})).useAllAvailableWidth();
-        if (matchState.getSetFinalStates() != null) {
-            for (SetFinalState setFinalState : matchState.getSetFinalStates()) {
-                if (column != 0) {
-                    tableFinalPoint.addCell(emptyCell);
-                    column++;
+                pdf.getDocumentInfo().setTitle(homeTeamName + " - " + guestTeamName);
+                if (creator != null) {
+                    pdf.getDocumentInfo().setCreator(creator);
                 }
-                tableFinalPoint.addCell(homeCell(new Paragraph(String.valueOf(setFinalState.getHomeState().getPoint())).setTextAlignment(TextAlignment.CENTER)));
-                tableFinalPoint.addCell(guestCell(new Paragraph(String.valueOf(setFinalState.getGuestState().getPoint())).setTextAlignment(TextAlignment.CENTER)));
-                column += 2;
-            }
-            while (column < 14) {
-                tableFinalPoint.addCell(emptyCell);
-                column++;
-            }
-        }
-        document.add(tableFinalPoint);
-        document.add(new Paragraph());
-
-        List<List<String>> pointBySet = new ArrayList<List<String>>();
-        if (matchState.getEvents() != null) {
-            int homePoint = 0;
-            int guestPoint = 0;
-            List<String> currentSetHome = new ArrayList<String>();
-            List<String> currentSetGuest = new ArrayList<String>();
-            for (MatchEvent matchEvent : matchState.getEvents()) {
-                if (matchEvent.isCancelled()) {
-                    continue;
+                if (creationDate != null) {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTime(creationDate);
+                    pdf.getDocumentInfo().setMoreInfo(PdfName.CreationDate.getValue(), new PdfDate(calendar).getPdfObject().getValue());
                 }
-                boolean endOfSet = false;
-                switch (matchEvent.getType()) {
-                case SET_POINT:
-                    endOfSet = true;
-                case POINT:
-                    if (matchEvent.isGuestEvent()) {
-                        guestPoint++;
-                        currentSetHome.add(null);
-                        currentSetGuest.add(String.valueOf(guestPoint));
-                    } else {
-                        homePoint++;
-                        currentSetHome.add(String.valueOf(homePoint));
-                        currentSetGuest.add(null);
+                if (modificationDate != null) {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTime(modificationDate);
+                    pdf.getDocumentInfo().setMoreInfo(PdfName.ModDate.getValue(), new PdfDate(calendar).getPdfObject().getValue());
+                }
+
+                try (Document document = new Document(pdf)) {
+
+                    Table headerTable = new Table(2).useAllAvailableWidth();
+
+                    headerTable.addCell(
+                            new Cell().setBorder(Border.NO_BORDER).add(new Image(ImageDataFactory.create(FSGTPDFGenerator.class.getResource("logo.png"))).scaleToFit(75, 75)));
+
+                    Color headerColor = Color.createColorWithColorSpace(new float[] {.25f, .36f, 0.55f});
+
+                    headerTable.addCell(new Cell().setBorder(Border.NO_BORDER)
+                            .add(new Paragraph("CHAMPIONNAT VOLLEY 2025.2026").setFontColor(headerColor).setTextAlignment(TextAlignment.CENTER)
+                                    .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)).setFontSize(24))
+                            .add(new Paragraph("Feuille de Match").setFont(PdfFontFactory.createFont(StandardFonts.TIMES_BOLD)).setFontColor(headerColor)
+                                    .setTextAlignment(TextAlignment.CENTER).setFontSize(24)));
+
+                    document.add(headerTable);
+
+                    Table infoTable = new Table(3).useAllAvailableWidth();
+                    Color infoColor = Color.createColorWithColorSpace(new float[] {.45f, .98f, 0.99f});
+                    infoTable.setBackgroundColor(infoColor);
+                    infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).add(new Paragraph("Date : ")));
+                    infoTable.addCell(
+                            new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Journée : ")));
+                    infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Poule : ")));
+                    document.add(infoTable);
+
+                    Table table = new Table(UnitValue.createPercentArray(new float[] {1, 1})).useAllAvailableWidth();
+
+                    // Add header cells
+                    table.addHeaderCell(homeCell(new Paragraph("Equipe Recevant : " + homeTeamName)));
+                    table.addHeaderCell(guestCell(new Paragraph("Equipe Visiteur : " + guestTeamName)));
+
+                    // Add data cells
+                    table.addCell(homeCell(new Paragraph("Présentation des licences OUI - ").add(new Text("NON").setLineThrough())));
+                    table.addCell(guestCell(new Paragraph("Présentation des licences OUI - ").add(new Text("NON").setLineThrough())));
+
+                    TeamState homeTeamState = matchState.getHomeTeamState();
+                    table.addCell(new Cell().setBackgroundColor(homeColor).setPadding(0).add(licencesTable(homeLicenceInformationProvider, homeTeamState)));
+                    TeamState guestTeamState = matchState.getGuestTeamState();
+                    table.addCell(new Cell().setBackgroundColor(guestColor).setPadding(0).add(licencesTable(guestLicenceInformationProvider, guestTeamState)));
+
+                    String homeCaptainIdentifier = null;
+                    if (homeTeamState != null) {
+                        homeCaptainIdentifier = homeTeamState.getCaptainIdentifier();
+                    }
+                    if (homeCaptainIdentifier == null) {
+                        homeCaptainIdentifier = "";
+                    }
+                    String guestCaptainIdentifier = null;
+                    if (guestTeamState != null) {
+                        guestCaptainIdentifier = guestTeamState.getCaptainIdentifier();
+                    }
+                    if (guestCaptainIdentifier == null) {
+                        guestCaptainIdentifier = "";
                     }
 
-                default:
-                    break;
-                }
-                if (endOfSet) {
-                    homePoint = 0;
-                    guestPoint = 0;
-                    pointBySet.add(currentSetHome);
-                    pointBySet.add(currentSetGuest);
-                    currentSetHome = new ArrayList<String>();
-                    currentSetGuest = new ArrayList<String>();
-                }
+                    Paragraph capitaine = new Paragraph("CAPITAINE").setTextAlignment(TextAlignment.CENTER);
+                    table.addCell(homeCell(capitaine));
+                    table.addCell(guestCell(capitaine));
+                    LicenceInformation homeCaptainLicenceInformation = homeLicenceInformationProvider.getLicenceInformation(homeCaptainIdentifier);
+                    table.addCell(homeCell(new Paragraph("NOM Prénom : " + homeCaptainLicenceInformation.getName()).setTextAlignment(TextAlignment.LEFT)));
+                    LicenceInformation guestCaptainLicenceInformation = guestLicenceInformationProvider.getLicenceInformation(guestCaptainIdentifier);
+                    table.addCell(guestCell(new Paragraph("NOM Prénom : " + guestCaptainLicenceInformation.getName()).setTextAlignment(TextAlignment.LEFT)));
+                    table.addCell(homeCell(new Paragraph("N° Licence : " + homeCaptainIdentifier).setTextAlignment(TextAlignment.LEFT)));
+                    table.addCell(guestCell(new Paragraph("N° Licence : " + guestCaptainIdentifier).setTextAlignment(TextAlignment.LEFT)));
+                    table.addCell(homeCell(new Paragraph("Signature : ")
+                            .add(new SignatureFieldAppearance("Signature Recevant").setContent("Signez ici").setHeight(50).setWidth(150).setInteractive(true))
+                            .setTextAlignment(TextAlignment.LEFT)));
+                    table.addCell(guestCell(new Paragraph("Signature : ")
+                            .add(new SignatureFieldAppearance("Signature Visiteur").setContent("Signez ici").setHeight(50).setWidth(150).setInteractive(true))
+                            .setTextAlignment(TextAlignment.LEFT)));
 
-            }
-            if (!currentSetHome.isEmpty() || !currentSetGuest.isEmpty()) {
-                pointBySet.add(currentSetHome);
-                pointBySet.add(currentSetGuest);
-            }
-        }
+                    document.add(table);
+                    document.add(new Paragraph());
 
-        List<ListIterator<String>> list = new ArrayList<ListIterator<String>>();
-        column = 0;
-        for (List<String> points : pointBySet) {
-            if (column != 0 && column % 2 == 0) {
-                list.add(null);
-            }
-            list.add(points.listIterator(points.size()));
-            column++;
-        }
-        while (list.size() < 14) {
-            list.add(null);
-        }
+                    Cell emptyCell = new Cell().setBorder(Border.NO_BORDER);
 
-        Table tablePoint = new Table(UnitValue.createPercentArray(new float[] {1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1})).useAllAvailableWidth();
-        while (true) {
-            column = -1;
-            boolean hasChanged = false;
-            for (ListIterator<String> listIterator : list) {
-                column++;
-                if (listIterator == null) {
-                    tablePoint.addCell(emptyCell);
-                    continue;
-                }
-                if (listIterator.hasPrevious()) {
-                    hasChanged = true;
-                    String previous = listIterator.previous();
-                    if (previous == null) {
-                        tablePoint.addCell(emptyCell);
-                    } else {
-                        if (column % 3 == 0) {
-                            tablePoint.addCell(homeCell(new Paragraph(previous).setTextAlignment(TextAlignment.CENTER)));
-                        } else if (column % 3 == 1) {
-                            tablePoint.addCell(guestCell(new Paragraph(previous).setTextAlignment(TextAlignment.CENTER)));
+                    int homeSet = 0;
+                    int guestSet = 0;
+
+                    int column = 0;
+                    Table tableSets = new Table(UnitValue.createPercentArray(new float[] {2, 1.5f, 2, 1.5f, 2, 1.5f, 2, 1.5f, 2})).useAllAvailableWidth();
+                    if (matchState.getSetFinalStates() != null) {
+                        for (SetFinalState setFinalState : matchState.getSetFinalStates()) {
+                            if (column != 0) {
+                                tableSets.addCell(emptyCell);
+                                column++;
+                            }
+                            if (setFinalState.getHomeState().getPoint() > setFinalState.getGuestState().getPoint()) {
+                                homeSet++;
+                            } else {
+                                guestSet++;
+                            }
+                            String setText;
+                            if (column == 0) {
+                                setText = "1er SET";
+                            } else {
+                                setText = (column / 2 + 1) + "ème SET";
+                            }
+                            tableSets.addCell(new Cell().add(new Paragraph(String.valueOf(setText)).setTextAlignment(TextAlignment.CENTER)));
+                            column++;
+                        }
+                        while (column < 9) {
+                            tableSets.addCell(emptyCell);
+                            column++;
                         }
                     }
-                } else {
-                    tablePoint.addCell(emptyCell);
+                    if (homeSet > guestSet) {
+                        document.add(new Paragraph(new Text(homeTeamName).setBackgroundColor(homeColor)).add(" BAT ").add(new Text(guestTeamName).setBackgroundColor(guestColor))
+                                .add(" PAR ").add(new Text(String.valueOf(homeSet)).setBackgroundColor(homeColor)).add(" SETS A ")
+                                .add(new Text(String.valueOf(guestSet)).setBackgroundColor(guestColor)));
+                    } else {
+                        document.add(new Paragraph(new Text(guestTeamName).setBackgroundColor(guestColor)).add(" BAT ").add(new Text(homeTeamName).setBackgroundColor(homeColor))
+                                .add(" PAR ").add(new Text(String.valueOf(guestSet)).setBackgroundColor(guestColor)).add(" SETS A ")
+                                .add(new Text(String.valueOf(homeSet)).setBackgroundColor(homeColor)));
+                    }
+
+                    document.add(tableSets);
+                    document.add(new Paragraph());
+
+                    column = 0;
+                    Table tableFinalPoint = new Table(UnitValue.createPercentArray(new float[] {1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1})).useAllAvailableWidth();
+                    if (matchState.getSetFinalStates() != null) {
+                        for (SetFinalState setFinalState : matchState.getSetFinalStates()) {
+                            if (column != 0) {
+                                tableFinalPoint.addCell(emptyCell);
+                                column++;
+                            }
+                            tableFinalPoint.addCell(homeCell(new Paragraph(String.valueOf(setFinalState.getHomeState().getPoint())).setTextAlignment(TextAlignment.CENTER)));
+                            tableFinalPoint.addCell(guestCell(new Paragraph(String.valueOf(setFinalState.getGuestState().getPoint())).setTextAlignment(TextAlignment.CENTER)));
+                            column += 2;
+                        }
+                        while (column < 14) {
+                            tableFinalPoint.addCell(emptyCell);
+                            column++;
+                        }
+                    }
+                    document.add(tableFinalPoint);
+                    document.add(new Paragraph());
+
+                    List<List<String>> pointBySet = new ArrayList<List<String>>();
+                    if (matchState.getEvents() != null) {
+                        int homePoint = 0;
+                        int guestPoint = 0;
+                        List<String> currentSetHome = new ArrayList<String>();
+                        List<String> currentSetGuest = new ArrayList<String>();
+                        for (MatchEvent matchEvent : matchState.getEvents()) {
+                            if (matchEvent.isCancelled()) {
+                                continue;
+                            }
+                            boolean endOfSet = false;
+                            switch (matchEvent.getType()) {
+                            case SET_POINT:
+                                endOfSet = true;
+                            case POINT:
+                                if (matchEvent.isGuestEvent()) {
+                                    guestPoint++;
+                                    currentSetHome.add(null);
+                                    currentSetGuest.add(String.valueOf(guestPoint));
+                                } else {
+                                    homePoint++;
+                                    currentSetHome.add(String.valueOf(homePoint));
+                                    currentSetGuest.add(null);
+                                }
+
+                            default:
+                                break;
+                            }
+                            if (endOfSet) {
+                                homePoint = 0;
+                                guestPoint = 0;
+                                pointBySet.add(currentSetHome);
+                                pointBySet.add(currentSetGuest);
+                                currentSetHome = new ArrayList<String>();
+                                currentSetGuest = new ArrayList<String>();
+                            }
+
+                        }
+                        if (!currentSetHome.isEmpty() || !currentSetGuest.isEmpty()) {
+                            pointBySet.add(currentSetHome);
+                            pointBySet.add(currentSetGuest);
+                        }
+                    }
+
+                    List<ListIterator<String>> list = new ArrayList<ListIterator<String>>();
+                    column = 0;
+                    for (List<String> points : pointBySet) {
+                        if (column != 0 && column % 2 == 0) {
+                            list.add(null);
+                        }
+                        list.add(points.listIterator(points.size()));
+                        column++;
+                    }
+                    while (list.size() < 14) {
+                        list.add(null);
+                    }
+
+                    Table tablePoint = new Table(UnitValue.createPercentArray(new float[] {1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1, 1.5f, 1, 1})).useAllAvailableWidth();
+                    while (true) {
+                        column = -1;
+                        boolean hasChanged = false;
+                        for (ListIterator<String> listIterator : list) {
+                            column++;
+                            if (listIterator == null) {
+                                tablePoint.addCell(emptyCell);
+                                continue;
+                            }
+                            if (listIterator.hasPrevious()) {
+                                hasChanged = true;
+                                String previous = listIterator.previous();
+                                if (previous == null) {
+                                    tablePoint.addCell(emptyCell);
+                                } else {
+                                    if (column % 3 == 0) {
+                                        tablePoint.addCell(homeCell(new Paragraph(previous).setTextAlignment(TextAlignment.CENTER)));
+                                    } else if (column % 3 == 1) {
+                                        tablePoint.addCell(guestCell(new Paragraph(previous).setTextAlignment(TextAlignment.CENTER)));
+                                    }
+                                }
+                            } else {
+                                tablePoint.addCell(emptyCell);
+                            }
+
+                        }
+                        if (!hasChanged) {
+                            break;
+                        }
+                    }
+
+                    document.add(tablePoint);
+
                 }
+            }
 
-            }
-            if (!hasChanged) {
-                break;
-            }
         }
-
-        document.add(tablePoint);
-
-        document.close();
 
     }
 
