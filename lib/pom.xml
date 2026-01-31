@@ -21,6 +21,16 @@
 		</dependency>
 		<dependency>
 			<groupId>com.itextpdf</groupId>
+			<artifactId>kernel</artifactId>
+			<version>${itext.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>forms</artifactId>
+			<version>${itext.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>fr.gaellalire.itextpdf</groupId>
 			<artifactId>sign</artifactId>
 			<version>${itext.version}</version>
 		</dependency>

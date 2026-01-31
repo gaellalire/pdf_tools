@@ -22,6 +22,7 @@
 		<itext.version>9.5.0</itext.version>
 	</properties>
 	<modules>
+		<module>patch</module>
 		<module>lib</module>
 		<module>cli</module>
 	</modules>
