@@ -1,6 +1,7 @@
 package fr.gaellalire.pdf_tools.lib;
 
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -99,6 +100,25 @@ public class FSGTPDFGenerator {
     private Date creationDate;
 
     private Date modificationDate;
+    
+    private Integer matchStep;
+    
+    private Date matchDate;
+    
+    private String competitionStageDivision;
+    
+    public void setMatchDate(Date matchDate) {
+        this.matchDate = matchDate;
+    }
+    
+    public void setCompetitionStageDivision(String competitionStageDivision) {
+        this.competitionStageDivision = competitionStageDivision;
+    }
+    
+    public void setMatchStep(Integer matchStep) {
+        this.matchStep = matchStep;
+    }
+
 
     public void setCreationDate(Date creationDate) {
         this.creationDate = creationDate;
@@ -125,7 +145,10 @@ public class FSGTPDFGenerator {
         return new Cell().setBackgroundColor(guestColor).add(blockElement);
     }
 
-    public void generate(OutputStream fileOutputStream, MatchConfiguration matchConfiguration, MatchState matchState) throws Exception {
+    public GenerationData generate(OutputStream fileOutputStream, MatchConfiguration matchConfiguration, MatchState matchState) throws Exception {
+        Date[] dateHolder = new Date[2];
+        String[] documentIdHolder = new String[2];
+
         String homeTeamName = "Recevant";
         String guestTeamName = "Visiteur";
         if (matchConfiguration != null) {
@@ -141,7 +164,6 @@ public class FSGTPDFGenerator {
                 }
             }
         }
-        
 
         try (PdfWriter writer = new PdfWriter(fileOutputStream)) {
             WriterProperties properties = writer.getProperties();
@@ -188,10 +210,22 @@ public class FSGTPDFGenerator {
                     Table infoTable = new Table(3).useAllAvailableWidth();
                     Color infoColor = Color.createColorWithColorSpace(new float[] {.45f, .98f, 0.99f});
                     infoTable.setBackgroundColor(infoColor);
-                    infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).add(new Paragraph("Date : ")));
+                    String matchDateString = "";
+                    if (matchDate != null) {
+                        matchDateString = new SimpleDateFormat("dd/MM/YYYY").format(matchDate);
+                    }
+                    infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).add(new Paragraph("Date : " + matchDateString)));
+                    String matchStepString = "";
+                    if (matchStep != null) {
+                        matchStepString = matchStep.toString();
+                    }
                     infoTable.addCell(
-                            new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Journée : ")));
-                    infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Poule : ")));
+                            new Cell().setBorderBottom(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Journée : " + matchStepString)));
+                    String pouleString = "";
+                    if (competitionStageDivision != null) {
+                        pouleString = competitionStageDivision.substring("POULE ".length());
+                    }
+                    infoTable.addCell(new Cell().setBorderBottom(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).add(new Paragraph("Poule : " + pouleString)));
                     document.add(infoTable);
 
                     Table table = new Table(UnitValue.createPercentArray(new float[] {1, 1})).useAllAvailableWidth();
@@ -398,11 +432,17 @@ public class FSGTPDFGenerator {
                     }
 
                     document.add(tablePoint);
+                    dateHolder[0] = PdfDate.decode(pdf.getDocumentInfo().getMoreInfo(PdfName.CreationDate.getValue())).getTime();
+                    documentIdHolder[0] = pdf.getOriginalDocumentId().getValue();
+                    dateHolder[1] = PdfDate.decode(pdf.getDocumentInfo().getMoreInfo(PdfName.ModDate.getValue())).getTime();
+                    documentIdHolder[1] = pdf.getModifiedDocumentId().getValue();
 
                 }
+
             }
 
         }
+        return new GenerationData(dateHolder[0], documentIdHolder[0], dateHolder[1], documentIdHolder[1]);
 
     }
 

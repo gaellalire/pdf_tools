@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.Callable;
 
@@ -32,6 +33,7 @@ import fr.gaellalire.match_pojo.MatchState;
 import fr.gaellalire.pdf_tools.cli.JSONUtils;
 import fr.gaellalire.pdf_tools.cli.match.NoDataLicenceInformationProvider;
 import fr.gaellalire.pdf_tools.lib.FSGTPDFGenerator;
+import fr.gaellalire.pdf_tools.lib.GenerationData;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -46,10 +48,10 @@ public class FSGTGenerate implements Callable<Integer> {
     private String modifiedDocumentId;
 
     @Option(names = "--creation-date")
-    private Date creationDate;
+    private Long creationDate;
 
     @Option(names = "--modification-date")
-    private Date modificationDate;
+    private Long modificationDate;
 
     @Option(names = "--match-configuration-file")
     private File matchConfigurationFile;
@@ -75,10 +77,18 @@ public class FSGTGenerate implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         FSGTPDFGenerator generator = new FSGTPDFGenerator();
-        generator.setCreationDate(creationDate);
-        generator.setModificationDate(modificationDate);
-        generator.setInitialDocumentId(initialDocumentId);
-        generator.setModifiedDocumentId(modifiedDocumentId);
+        if (creationDate != null) {
+            generator.setCreationDate(new Date(creationDate));
+        }
+        if (modificationDate != null) {
+            generator.setModificationDate(new Date(modificationDate));
+        }        
+        if (initialDocumentId != null) {
+            generator.setInitialDocumentId(new String(Base64.getDecoder().decode(initialDocumentId), "UTF-8"));
+        } 
+        if (modifiedDocumentId != null) {
+            generator.setModifiedDocumentId(new String(Base64.getDecoder().decode(modifiedDocumentId), "UTF-8"));
+        }
         generator.setHomeLicenceInformationProvider(new NoDataLicenceInformationProvider());
         generator.setGuestLicenceInformationProvider(new NoDataLicenceInformationProvider());
         MatchConfiguration matchConfiguration = null;
@@ -87,7 +97,12 @@ public class FSGTGenerate implements Callable<Integer> {
         }
         MatchState matchState = JSONUtils.readPojo(new FileInputStream(matchStateFile), MatchState.class);
         try (FileOutputStream fileOutputStream = new FileOutputStream(destFile)) {
-            generator.generate(fileOutputStream, matchConfiguration, matchState);
+            GenerationData generationData = generator.generate(fileOutputStream, matchConfiguration, matchState);
+            System.out.println("--creation-date=" + generationData.getCreationDate().getTime());
+            System.out.println("--initial-document-id=" + Base64.getEncoder().encodeToString(generationData.getInitialDocumentId().getBytes("UTF-8")));
+            System.out.println("--modification-date=" + generationData.getModificationDate().getTime());
+            System.out.println("--modified-document-id=" + Base64.getEncoder().encodeToString(generationData.getModifiedDocumentId().getBytes("UTF-8")));
+
         }
         System.out.print("File generated");
         return 0;
